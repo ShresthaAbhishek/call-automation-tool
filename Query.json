@@ -1,10 +1,11 @@
 {
   "id": "83f27b50-1b49-4b74-9698-8b3befe2896e",
   "createdAt": "2026-02-07T04:33:52.229Z",
-  "updatedAt": "2026-02-08T02:05:14.892Z",
+  "updatedAt": "2026-02-08T02:40:29.061Z",
   "type": "query",
   "function": {
     "name": "Query",
+    "description": "This tool will be called when the customer asks for any information regarding the menu. This includes the menu items -> given by Item Name, the availability of an item -> given by Availability (Qty), Price of an item -> given by Price and item type -> given by tags. This DOES NOT contain the necessary information for any RESERVATION related information.",
     "parameters": {
       "type": "object",
       "properties": {},
@@ -33,7 +34,7 @@
       "name": "TheMenu",
       "provider": "google",
       "model": "gemini-2.0-flash",
-      "description": "This Knowledge Base will be used when information regarding to the menu needs to be accessed. This includes item availability, item price, item description & menu related allergen information. This DOES NOT contain the necessary information for any RESERVATION related information.",
+      "description": "This Knowledge Base will be used when information regarding to the menu needs to be accessed. This includes item availability, item price, item description & menu related allergen information.  Unless specifically asked for the \"Category\" section will not be addressed. ",
       "fileIds": [
         "649578f4-1eea-4029-a00e-a4974eab03e2"
       ]
