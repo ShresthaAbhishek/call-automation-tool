@@ -1,0 +1,59 @@
+{
+  "id": "83f27b50-1b49-4b74-9698-8b3befe2896e",
+  "createdAt": "2026-02-07T04:33:52.229Z",
+  "updatedAt": "2026-02-08T02:05:14.892Z",
+  "type": "query",
+  "function": {
+    "name": "Query",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  },
+  "messages": [
+    {
+      "type": "request-start",
+      "blocking": false
+    }
+  ],
+  "metadata": null,
+  "orgId": "1fd34454-b385-423b-9187-b096fec24896",
+  "templateId": null,
+  "server": null,
+  "async": false,
+  "name": null,
+  "destinations": null,
+  "subType": null,
+  "displayWidthPx": null,
+  "displayHeightPx": null,
+  "displayNumber": null,
+  "knowledgeBases": [
+    {
+      "name": "TheMenu",
+      "provider": "google",
+      "model": "gemini-2.0-flash",
+      "description": "This Knowledge Base will be used when information regarding to the menu needs to be accessed. This includes item availability, item price, item description & menu related allergen information. This DOES NOT contain the necessary information for any RESERVATION related information.",
+      "fileIds": [
+        "649578f4-1eea-4029-a00e-a4974eab03e2"
+      ]
+    }
+  ],
+  "url": null,
+  "method": null,
+  "headers": null,
+  "body": null,
+  "backoffPlan": null,
+  "timeoutSeconds": null,
+  "description": null,
+  "variableExtractionPlan": null,
+  "rejectionPlan": null,
+  "credentialId": null,
+  "beepDetectionEnabled": null,
+  "code": null,
+  "environmentVariables": null,
+  "parameters": null,
+  "encryptedPaths": null,
+  "sipInfoDtmfEnabled": null,
+  "verb": null
+}
