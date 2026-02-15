@@ -1,47 +1,56 @@
 {
-    "type": "object",
-    "properties": {
+  "type": "object",
+  "properties": {
+    "items": {
+      "description": "List of items ordered.",
+      "type": "array",
       "items": {
-        "description": "List of items the customer wants to order.",
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "item_name",
-            "quantity"
-          ],
-          "properties": {
-            "quantity": {
-              "description": "Number of items",
-              "type": "integer"
-            },
-            "item_name": {
-              "description": "Name of the dish or drink",
-              "type": "string"
-            },
-            "special_requests": {
-              "description": "No onions, extra sauce, etc.",
-              "type": "string"
-            }
+        "type": "object",
+        "required": [
+          "item_name",
+          "quantity"
+        ],
+        "properties": {
+          "notes": {
+            "description": "Special instructions (e.g. 'no onions').",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Quantity.",
+            "type": "integer"
+          },
+          "item_name": {
+            "description": "Name of the dish.",
+            "type": "string"
           }
         }
-      },
-      "customer_phone": {
-        "description": "Phone number for SMS updates.",
-        "type": "string"
-      },
-      "upsell_accepted": {
-        "description": "True if the customer accepted the suggested side/drink.",
-        "type": "boolean"
-      },
-      "health_complications": {
-        "description": "MANDATORY: Customer's allergies or dietary restrictions. If none, verify and set to 'None'.",
-        "type": "string",
-        "default": "Not Asked"
       }
     },
-    "required": [
-      "items",
-      "health_complications"
-    ]
-  }
+    "order_type": {
+      "description": "Whether the customer is picking up or requesting delivery.",
+      "type": "string",
+      "enum": [
+        "pickup",
+        "delivery"
+      ]
+    },
+    "pickup_time": {
+      "description": "The time the customer wants to pick up the order.",
+      "type": "string"
+    },
+    "customer_name": {
+      "description": "The name of the person ordering.",
+      "type": "string"
+    },
+    "quoted_total_price": {
+      "description": "The total price from the menu.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_type",
+    "customer_name",
+    "items",
+    "pickup_time"
+  ]
+}
