@@ -1,0 +1,79 @@
+flowchart TD
+    %% Styling based on the original image palette
+    classDef start fill:#90EE90,stroke:#333,stroke-width:2px,color:black;
+    classDef process fill:#FCE883,stroke:#333,stroke-width:2px,color:black;
+    classDef decision fill:#89CFF0,stroke:#333,stroke-width:2px,color:black;
+    classDef endNode fill:#FFB6C1,stroke:#333,stroke-width:2px,color:black;
+    classDef human fill:#FFDAB9,stroke:#333,stroke-width:2px,color:black;
+
+    %% Entry Point
+    Start([Inbound Call]) --> CRM{POS / CRM Tool}
+    class Start start
+
+    %% Identification Phase
+    CRM -- "Number Recognized" --> Greet[Greet by Name & Review Past Order]
+    CRM -- "New Number" --> Create[Create Guest Profile]
+    class CRM,Greet,Create process
+
+    Greet --> Intent{Gather Intent}
+    Create --> Intent
+    class Intent decision
+
+    %% Branch 1: Reservations
+    Intent -- "Table Reservation" --> ResAction{Action Type}
+    class ResAction decision
+    
+    ResAction -- "New Booking" --> CheckAvail[Check Table Availability]
+    ResAction -- "Modify/Cancel" --> ResLookup[Lookup Reservation]
+    
+    CheckAvail -- "Available" --> Book[Confirm & Book Table]
+    CheckAvail -- "Full" --> Waitlist[Suggest Alternate/Waitlist]
+    ResLookup --> ModRes[Update/Cancel Booking]
+    
+    class CheckAvail,Book,Waitlist,ResLookup,ModRes process
+
+    %% Branch 2: Ordering (New Feature)
+    Intent -- "Place Order" --> OrderType{Pickup or Delivery?}
+    class OrderType decision
+    
+    OrderType --> Menu[AI Menu Assistant]
+    Menu --> AddItem[Add Items to Ticket]
+    AddItem --> Upsell{Suggest Sides/Drink?}
+    
+    Upsell -- "Accepted" --> AddItem
+    Upsell -- "Declined" --> Checkout[Process Payment]
+    Checkout --> Kitchen[Send to Kitchen Display System]
+    
+    class Menu,AddItem,Checkout,Kitchen process
+    class Upsell decision
+
+    %% Branch 3: General Inquiries
+    Intent -- "General Questions" --> FAQ{Identify Topic}
+    class FAQ decision
+    
+    FAQ -- "Hours/Location" --> KB1[Knowledge Base]
+    FAQ -- "Dietary/Menu Info" --> KB2[Knowledge Base]
+    
+    KB1 --> Answer[Answer Question]
+    KB2 --> Answer
+    
+    Answer --> More{More Questions?}
+    More -- "Yes" --> FAQ
+    class KB1,KB2,Answer process
+    class More decision
+
+    %% Branch 4: Human Escalation
+    Intent -- "Talk to Staff" --> Transfer[Transfer to Front of House]
+    class Transfer human
+
+    %% Closing Loop
+    Book --> Log[Log Activity in POS]
+    ModRes --> Log
+    Waitlist --> Log
+    Kitchen --> Log
+    More -- "No" --> Log
+    Transfer --> Log
+
+    Log --> End([End Call])
+    class Log process
+    class End endNode
