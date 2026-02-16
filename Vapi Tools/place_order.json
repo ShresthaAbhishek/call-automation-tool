@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
     "type": "object",
     "properties": {
       "items": {
@@ -45,3 +46,60 @@
       "health_complications"
     ]
   }
+=======
+  "type": "object",
+  "properties": {
+    "items": {
+      "description": "List of items ordered.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "item_name",
+          "quantity"
+        ],
+        "properties": {
+          "notes": {
+            "description": "Special instructions (e.g. 'no onions').",
+            "type": "string"
+          },
+          "quantity": {
+            "description": "Quantity.",
+            "type": "integer"
+          },
+          "item_name": {
+            "description": "Name of the dish.",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "order_type": {
+      "description": "Whether the customer is picking up or requesting delivery.",
+      "type": "string",
+      "enum": [
+        "pickup",
+        "delivery"
+      ]
+    },
+    "pickup_time": {
+      "description": "The time the customer wants to pick up the order.",
+      "type": "string"
+    },
+    "customer_name": {
+      "description": "The name of the person ordering.",
+      "type": "string"
+    },
+    "quoted_total_price": {
+      "description": "The total price from the menu.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_type",
+    "customer_name",
+    "items",
+    "pickup_time"
+  ]
+}
+>>>>>>> d3c90195050f206edf59664c2cd67ab1d941f6f0
