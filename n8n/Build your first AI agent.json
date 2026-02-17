@@ -1,0 +1,520 @@
+{
+  "name": "Build your first AI agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-webhook",
+        "responseMode": "streaming",
+        "options": {}
+      },
+      "id": "64c72dd1-5bd2-4d56-81e9-bc7bd6c2cedd",
+      "name": "Vapi Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        256,
+        496
+      ],
+      "webhookId": "078bfe8a-080e-41cf-9d55-d1252139b572"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "workflowInfo",
+              "value": "Vapi Restaurant Receptionist Integration",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "webhookUrl",
+              "value": "https://aadityamalla11.app.n8n.cloud/webhook/vapi-webhook",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "21cdfbbc-6b8e-4689-b725-446108bd20cf",
+      "name": "Workflow Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        480,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "requestType",
+              "value": "={{ $json.body.message.toolCalls?.[0]?.function?.name || $json.body.type || 'query' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "callId",
+              "value": "={{ $json.body.message.call?.id || 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "timestamp",
+              "value": "={{ $json.body.message.timestamp || $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "id-4",
+              "name": "toolData",
+              "value": "={{ JSON.stringify($json.body.message.toolCalls?.[0]?.function?.arguments || {}) }}",
+              "type": "object"
+            },
+            {
+              "id": "id-5",
+              "name": "rawPayload",
+              "value": "={{ JSON.stringify($json.body) }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4f3ac675-58d1-42e3-af72-047501492a04",
+      "name": "Extract Vapi Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.requestType }}",
+                    "rightValue": "order",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Orders"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.requestType }}",
+                    "rightValue": "reservation",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reservations"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.requestType }}",
+                    "rightValue": "query",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Queries"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "62c7bad9-aad7-4b73-a4ba-d22e4e783888",
+      "name": "Route by Request Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        928,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__your_order_processing_api_endpoint__>",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { orderId: $json.callId, orderDetails: $json.toolData, timestamp: $json.timestamp } }}",
+        "options": {}
+      },
+      "id": "998d65c4-ffb2-4fb8-8722-f02bcce1a903",
+      "name": "Process Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__your_reservation_system_api_endpoint__>",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { reservationId: $json.callId, reservationDetails: $json.toolData, timestamp: $json.timestamp } }}",
+        "options": {}
+      },
+      "id": "f49d2c9c-7204-4bf2-a429-68493f3daf61",
+      "name": "Process Reservation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "<__PLACEHOLDER_VALUE__your_query_handling_api_endpoint__>",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { queryId: $json.callId, queryDetails: $json.toolData, timestamp: $json.timestamp } }}",
+        "options": {}
+      },
+      "id": "c6972b54-74f6-46ec-9bbe-f4f49abbb29e",
+      "name": "Process Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1152,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "={{ 'Order processed successfully. Order ID: ' + $json.callId }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "data",
+              "value": "={{ JSON.stringify($('Process Order').item.json) }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "type",
+              "value": "order",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f056c76d-906b-4dbe-9c79-743164539cd2",
+      "name": "Format Order Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "={{ 'Reservation confirmed. Reservation ID: ' + $json.callId }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "data",
+              "value": "={{ $('Process Reservation').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "type",
+              "value": "reservation",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8c5cd2d2-b60c-49ac-9118-160cf0a4e6fd",
+      "name": "Format Reservation Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "id-1",
+              "name": "status",
+              "value": "success",
+              "type": "string"
+            },
+            {
+              "id": "id-2",
+              "name": "message",
+              "value": "={{ 'Query processed successfully. Query ID: ' + $json.callId }}",
+              "type": "string"
+            },
+            {
+              "id": "id-3",
+              "name": "data",
+              "value": "={{ JSON.stringify($('Process Query').item.json) }}",
+              "type": "object"
+            },
+            {
+              "id": "id-4",
+              "name": "type",
+              "value": "query",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "75ed3728-60ee-48da-9dbc-ebbfac3ffeac",
+      "name": "Format Query Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1376,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "id": "43f8e092-532e-46c6-b62d-8a8a1f180123",
+      "name": "Send Response to Vapi",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1600,
+        496
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Vapi Webhook": {
+      "main": [
+        [
+          {
+            "node": "Workflow Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Configuration": {
+      "main": [
+        [
+          {
+            "node": "Extract Vapi Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Vapi Data": {
+      "main": [
+        [
+          {
+            "node": "Route by Request Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Request Type": {
+      "main": [
+        [
+          {
+            "node": "Process Order",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Reservation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Process Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Order": {
+      "main": [
+        [
+          {
+            "node": "Format Order Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Reservation": {
+      "main": [
+        [
+          {
+            "node": "Format Reservation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Query": {
+      "main": [
+        [
+          {
+            "node": "Format Query Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Order Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Reservation Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Query Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response to Vapi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "79cb1d00-2136-4c65-b16c-fd061f6880e0",
+  "meta": {
+    "templateId": "6270",
+    "templateCredsSetupCompleted": true,
+    "instanceId": "123d581def5fe3c3f3f204e8222b3c8ef595ca64d24aae9f6257fee9cce7691e"
+  },
+  "id": "IWPY3cocO5zlRqak",
+  "tags": []
+}
