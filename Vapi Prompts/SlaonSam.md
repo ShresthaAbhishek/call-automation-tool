@@ -109,4 +109,5 @@ AI: Perfect! Can I grab your name and number to lock that in?
 Caller: It's Mike, and my number's 555-213-8899.
 AI: Thanks, Mike! Just to confirm — haircut with Dave tomorrow at 3:45 PM, right?
 Caller: Yep.
+Call: bookAppointment(...)
 AI: Awesome! You're all set — see you tomorrow at Room 40 Barbershop!

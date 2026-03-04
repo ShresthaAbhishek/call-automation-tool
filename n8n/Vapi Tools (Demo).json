@@ -1,0 +1,1027 @@
+{
+  "name": "Vapi Tools (Demo)",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "657bd650-cab2-4d63-b4e1-752fece4355c",
+              "name": "start",
+              "value": "={{ $json.body.message.toolCalls[0].function.arguments.start }}",
+              "type": "string"
+            },
+            {
+              "id": "8c1a4a34-be0f-408a-83ba-d4424d906b90",
+              "name": "end",
+              "value": "={{ $json.body.message.toolCalls[0].function.arguments.end }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        0
+      ],
+      "id": "f3a185f4-0251-417f-9701-39795bd41d01",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "946a3fc14355beb3b656f00848ded039484b952b5b0516261edda5beeb0e99ea@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "StyleHouse Salon Schedule"
+        },
+        "timeMin": "={{ $json.start }}",
+        "timeMax": "={{ $json.end }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        320,
+        0
+      ],
+      "id": "23dae057-e1ae-4fb6-9726-283671d0407a",
+      "name": "Get many events",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "K1bJDnp1KpOT9uJq",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "events",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "e75de733-7116-4e49-a87e-72ab60879cb0",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "const events = $input.first().json.events.filter(e => e.start?.dateTime && e.end?.dateTime);\n\nconst checkIfAvailable = (slotStart) => {\n  const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);\n  return !events.some(event => {\n    const eventStart = new Date(event.start.dateTime);\n    const eventEnd = new Date(event.end.dateTime);\n    return slotStart < eventEnd && slotEnd > eventStart;\n  });\n};\n\nconst webhookInput = $('Edit Fields').first().json\nconst after = new Date(webhookInput.start);\nconst before = new Date(webhookInput.end);\n\nlet slots = [];\nlet current = new Date(after);\n\nwhile (current < before) {\n  if (checkIfAvailable(current)) {\n    const spoken = current.toLocaleString('en-US', {\n      weekday: 'long',\n      hour: 'numeric',\n      minute: '2-digit',\n      hour12: true,\n      timeZone: 'America/New_York'\n    });\n    const iso = current.toISOString();\n    slots.push({ id: iso, spoken });\n  }\n  current = new Date(current.getTime() + 60 * 60 * 1000);\n}\n\n// Build natural spoken summary\nlet spokenSummary = \"It looks like we're fully booked.\";\nif (slots.length > 0) {\n  const readable = slots.map(s => s.spoken);\n  if (readable.length === 1) spokenSummary = `We have ${readable[0]} available.`;\n  else spokenSummary = `We have ${readable.slice(0, -1).join(', ')} and ${readable[readable.length - 1]} — what works better for you?`;\n}\n\nreturn {\n  results: [\n    {\n       toolCallId: $('VAPI Webhook Tool - GET Availability').first().json.body.message.toolCalls[0].id,\n    result: {\n      slots: JSON.stringify(slots),\n      spokenSummary\n      }\n    }\n  ]\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ],
+      "id": "d8255026-f090-4cb9-994f-988c7a1dedd9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d406b00e-c0a2-4e92-b01b-9095124b1821",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b715a4e-068d-4b8e-ab92-1b91e5d63c9b",
+      "name": "VAPI Webhook Tool - GET Availability",
+      "webhookId": "d406b00e-c0a2-4e92-b01b-9095124b1821"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d38f289a-4ebb-4005-bfcc-76c3ccfc5657",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        176
+      ],
+      "id": "a1d6769d-4237-4e1f-9c73-03bfe552f8c2",
+      "name": "VAPI Webhook Tool – POST Appointment",
+      "webhookId": "d38f289a-4ebb-4005-bfcc-76c3ccfc5657"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "946a3fc14355beb3b656f00848ded039484b952b5b0516261edda5beeb0e99ea@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "StyleHouse Salon Schedule"
+        },
+        "start": "={{ $json.body.message.toolCalls[0].function.arguments.appointmentTime }}",
+        "end": "={{ $json.body.message.toolCalls[0].function.arguments.appointmentTime.toDateTime().plus(1, 'hour') }}",
+        "additionalFields": {
+          "description": "=Customer Name:  {{ $json.body.message.toolCalls[0].function.arguments.name }}",
+          "summary": "={{ $json.body.message.toolCalls[0].function.arguments.name }} - Haircut"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        176
+      ],
+      "id": "dc8a2558-2a1f-4ea5-a6f2-5738a84d2dea",
+      "name": "Create an event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "K1bJDnp1KpOT9uJq",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"results\": [\n    {\n      \"toolCallId\": \"{{ $('VAPI Webhook Tool – POST Appointment').item.json.body.message.toolCalls[0].id }}\",\n      \"result\": \"success\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        320,
+        176
+      ],
+      "id": "cc1d9bac-e930-4b2d-b3c8-cefe57bdfae9",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {
+    "VAPI Webhook Tool - GET Availability": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.cyanstack.com",
+            "x-real-ip": "167.150.225.76",
+            "x-forwarded-for": "167.150.225.76",
+            "x-forwarded-proto": "https",
+            "x-forwarded-host": "n8n.cyanstack.com",
+            "connection": "close",
+            "content-length": "15470",
+            "accept": "application/json, text/plain, */*",
+            "content-type": "application/json",
+            "x-vapi-secret": "",
+            "x-chat-id": "2bc06712-61c5-4ba0-b6ef-6cebe534f1f7",
+            "cookie": "callId=",
+            "accept-encoding": "identity",
+            "user-agent": "axios/1.8.3",
+            "sentry-trace": "cf4eb7ca7abb48b9bbd80b984966161c-ade38692f5a85a6a",
+            "baggage": "sentry-environment=production,sentry-public_key=fac6f282c765ce50b18c3fa0305f8a8b,sentry-trace_id=cf4eb7ca7abb48b9bbd80b984966161c",
+            "traceparent": "00-3199fe22624447577f8a3e0ec75e981c-4f8a497b16efc70a-01"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": {
+              "timestamp": 1762110942402,
+              "type": "tool-calls",
+              "toolCalls": [
+                {
+                  "id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                  "type": "function",
+                  "function": {
+                    "name": "check_availability",
+                    "arguments": {
+                      "start": "2025-11-04T09:00:00-05:00",
+                      "end": "2025-11-04T18:00:00-05:00"
+                    }
+                  }
+                }
+              ],
+              "toolCallList": [
+                {
+                  "id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                  "type": "function",
+                  "function": {
+                    "name": "check_availability",
+                    "arguments": {
+                      "start": "2025-11-04T09:00:00-05:00",
+                      "end": "2025-11-04T18:00:00-05:00"
+                    }
+                  }
+                }
+              ],
+              "toolWithToolCallList": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "check_availability",
+                    "parameters": {
+                      "type": "object",
+                      "required": [
+                        "start",
+                        "end"
+                      ],
+                      "properties": {
+                        "end": {
+                          "type": "string",
+                          "default": "",
+                          "description": "The end of the time range to check for available appointment slots.\nExample: \"2025-11-08T10:00:00-04:00\""
+                        },
+                        "start": {
+                          "type": "string",
+                          "default": "",
+                          "description": "The beginning of the time range to check for available appointment slots.\nExample: \"2025-11-07T10:00:00-04:00\""
+                        }
+                      }
+                    },
+                    "description": "Returns all available one-hour appointment slots within the given date range.\n\nOutput Example:\n```json\n{\n  \"slots\": [\n    { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n    { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n  ],\n  \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n}\n```"
+                  },
+                  "async": true,
+                  "server": {
+                    "url": "https://n8n.cyanstack.com/webhook/d406b00e-c0a2-4e92-b01b-9095124b1821",
+                    "headers": {
+                      "X-Chat-Id": "2bc06712-61c5-4ba0-b6ef-6cebe534f1f7"
+                    }
+                  },
+                  "messages": [
+                    {
+                      "type": "request-start",
+                      "contents": [],
+                      "conditions": [],
+                      "blocking": false
+                    }
+                  ],
+                  "toolCall": {
+                    "id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                    "type": "function",
+                    "function": {
+                      "name": "check_availability",
+                      "arguments": {
+                        "start": "2025-11-04T09:00:00-05:00",
+                        "end": "2025-11-04T18:00:00-05:00"
+                      }
+                    }
+                  }
+                }
+              ],
+              "artifact": {
+                "messages": [
+                  {
+                    "role": "system",
+                    "message": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, ...",
+                    "time": 1762110941772,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?",
+                    "time": 1762110941772,
+                    "secondsFromStart": 0,
+                    "endTime": 1762110941772
+                  },
+                  {
+                    "role": "user",
+                    "message": "id like to schedule an appointment for tomorrow",
+                    "time": 1762110941773,
+                    "secondsFromStart": 0,
+                    "endTime": 1762110941772
+                  },
+                  {
+                    "role": "tool_calls",
+                    "toolCalls": [
+                      {
+                        "id": "call_v9wVsDH9FssSUCKCZzpfU7KY",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-03T09:00:00-05:00\",\n  \"end\": \"2025-11-03T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ],
+                    "message": "",
+                    "time": 1762110941774,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "toolCallId": "call_v9wVsDH9FssSUCKCZzpfU7KY",
+                    "name": "call_v9wVsDH9FssSUCKCZzpfU7KY",
+                    "result": "No result returned. If this is unexpected, see troubleshooting tips at https://docs.vapi.ai/tools/custom-tools-troubleshooting#no-result-returned-error",
+                    "time": 1762110941775,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "It looks like we’re fully booked tomorrow. Would you like to try a different day for your appointment?",
+                    "time": 1762110941776,
+                    "secondsFromStart": 0,
+                    "endTime": 1762110941772
+                  },
+                  {
+                    "role": "user",
+                    "message": "how about the next day?",
+                    "time": 1762110941777,
+                    "secondsFromStart": 0,
+                    "endTime": 1762110941772
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-04T09:00:00-05:00\",\n  \"end\": \"2025-11-04T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1762110942384,
+                    "secondsFromStart": 0.612
+                  }
+                ],
+                "messagesOpenAIFormatted": [
+                  {
+                    "role": "system",
+                    "content": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, ..."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "id like to schedule an appointment for tomorrow"
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_v9wVsDH9FssSUCKCZzpfU7KY",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-03T09:00:00-05:00\",\n  \"end\": \"2025-11-03T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_v9wVsDH9FssSUCKCZzpfU7KY",
+                    "content": "No result returned. If this is unexpected, see troubleshooting tips at https://docs.vapi.ai/tools/custom-tools-troubleshooting#no-result-returned-error"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "It looks like we’re fully booked tomorrow. Would you like to try a different day for your appointment?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "how about the next day?"
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-04T09:00:00-05:00\",\n  \"end\": \"2025-11-04T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_RoiBX5W7mzeyWVyP4QxLM8ir",
+                    "content": "Tool Result Still Pending But Proceed Further If Possible."
+                  }
+                ]
+              },
+              "chat": {
+                "id": "2bc06712-61c5-4ba0-b6ef-6cebe534f1f7",
+                "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                "createdAt": "2025-10-30T17:01:01.008Z",
+                "updatedAt": "2025-11-02T19:08:41.233Z"
+              },
+              "assistant": {
+                "id": "2a4ad372-8453-487e-91cc-a879ef986657",
+                "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                "name": "Robert",
+                "voice": {
+                  "model": "eleven_turbo_v2_5",
+                  "voiceId": "bIHbv24MWmeRgasZH58o",
+                  "provider": "11labs",
+                  "stability": 0.5,
+                  "similarityBoost": 0.75
+                },
+                "createdAt": "2025-11-02T15:14:43.515Z",
+                "updatedAt": "2025-11-02T19:06:59.700Z",
+                "model": {
+                  "model": "gpt-4.1",
+                  "toolIds": [
+                    "f605f425-e6b0-4e7b-b581-0c2af22ccf7b",
+                    "bb44dcd9-8823-4edf-ba7b-2369a97f3cb6"
+                  ],
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, IDs, or technical details.\n\n---\n\n## Context\nToday's date: **Nov 2, 2025, 7:15 PM UTC**  \nCurrent local time: **02:15 PM**  \nAll times are in **America/New_York**.\n\n---\n\n## Business Hours\nStyleHouse Salon operates during:\n- Monday–Friday: 9:00 AM – 6:00 PM  \n- Saturday: 9:00 AM – 3:00 PM  \n- Sunday: Closed  \n\nAppointments can only be booked during open hours.  \nIf the customer asks for a time outside these hours, say:  \n> “We’re closed then, but I can check for a morning or afternoon slot between 9 and 6 — what works best?”\n\n---\n\n## Conversation Flow\n\n### Step 1 — Greeting\nStart with:  \n> “Thank you for calling StyleHouse Salon, this is Emma! How can I help you today?”\n\nIf they say they’d like to book:  \n> “Of course! What day or time works best for you?”\n\n---\n\n### Step 2 — Determine the Time Range\nWhen the caller mentions a date or general timeframe, determine the range:\n\n| Caller says... | `start` param | `end` param |\n|-----------------|---------------|-------------|\n| “today” | Start of today | End of today |\n| “tomorrow” | Start of tomorrow | End of tomorrow |\n| “this week” | Start of week | End of week |\n\nThen call **`check_availability`**.\n\n---\n\n### Step 3 — Offer Available Slots\nThe `check_availability` tool returns results like this:\n\n```json\n{\n  \"slots\": [\n    { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n    { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n  ],\n  \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n}\n```\n\nWhen offering times:\n- Read `spokenSummary` exactly as returned.  \n- If the caller mentions one of the `spoken` times, map it to that slot’s `id`.  \n- If they ask for a time not listed, respond:  \n  > “That time’s booked, but we have Sunday at 2 PM or Sunday at 3 PM available.”  \n- If no slots are available, say:  \n  > “It looks like we’re fully booked that day — would you like to try another day?”\n\n---\n\n### Step 4 — Confirm & Book\nOnce they choose a time:\n1. Ask for their **full name** (and optionally email).  \n2. Call **`postAppointment`** with:\n   ```json\n   {\n     \"name\": \"Jamie Lee\",\n     \"appointmentTime\": \"2025-11-02T14:00:00-05:00\"\n   }\n   ```\nThe appointment time should be the slot id from the slot chosen by user.\n3. Confirm:\n   > “Perfect, Jamie — you’re all set for Sunday at 2 PM. We’ll see you then!”\n\nIf the slot is no longer available:\n> “Looks like that spot was just taken — want me to check what else is open?”\n\n---\n\n## Tool Definitions\n\n### `check_availability`\n- **Purpose:** Returns all available 1-hour appointment slots within a given date range.  \n- **Input:**  \n  - `start` *(required)* — Start of range (ISO 8601 with timezone offset).  \n  - `end` *(required)* — End of range (ISO 8601 with timezone offset).  \n- **Output Example:**  \n  ```json\n  {\n    \"slots\": [\n      { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n      { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n    ],\n    \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n  }\n  ```\n\n---\n\n### `postAppointment`\n- **Purpose:** Creates a new appointment in the salon’s Google Calendar for the selected slot.  \n- **Input:**  \n  - `name` *(required)* — Customer’s name.  \n  - `slotId` *(required)* — Slot’s unique ID from `check_availability`.  \n- **Output Example:**  \n  ```json\n  {\n    \"eventCreated\": true,\n    \"calendarEventId\": \"abcd123\",\n    \"message\": \"Appointment created for Jamie Lee on 2025-11-02T14:00:00-05:00\"\n  }\n  ```\n\n---\n\n## Grounding Rules\n1. **Never** invent or modify appointment times.  \n2. Offer **only** slots returned by `check_availability`.  \n3. Use the exact `spoken` field when confirming or repeating times.  \n4. Do not mention or expose technical data (IDs, JSON, timestamps).  \n5. Always restate the chosen time before confirming.  \n6. If no times are available, offer to check another day.  \n\n---\n\n**Remember:**  \nYou exist to make scheduling effortless and accurate.  \nBe warm, brief, and confident — and always rely on real data.\n"
+                    }
+                  ],
+                  "provider": "openai",
+                  "tools": [
+                    {
+                      "id": "f605f425-e6b0-4e7b-b581-0c2af22ccf7b",
+                      "createdAt": "2025-11-02T18:53:51.146Z",
+                      "updatedAt": "2025-11-02T18:58:09.749Z",
+                      "type": "function",
+                      "function": {
+                        "name": "post_appointment",
+                        "parameters": {
+                          "type": "object",
+                          "required": [
+                            "name",
+                            "appointmentTime"
+                          ],
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The customer’s full name to include in the calendar event title. Example: \"Jamie Lee\""
+                            },
+                            "appointmentTime": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The scheduled appointment time. If the appointment is for October 31st at 10am, heres the input: `2025-10-31T10:00:00-04:00`.  Make sure the timezone offset is correct.  If the appointment is for November 3rd at 9am, heres the input `2025-11-03T09:00:00-05:00`"
+                            }
+                          }
+                        },
+                        "description": "Creates a confirmed appointment on the StyleHouse Google Calendar."
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad"
+                    },
+                    {
+                      "id": "bb44dcd9-8823-4edf-ba7b-2369a97f3cb6",
+                      "createdAt": "2025-11-02T18:47:05.483Z",
+                      "updatedAt": "2025-11-02T19:14:08.338Z",
+                      "type": "function",
+                      "function": {
+                        "name": "check_availability",
+                        "parameters": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end"
+                          ],
+                          "properties": {
+                            "end": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The end of the time range to check for available appointment slots.\nExample: \"2025-11-08T10:00:00-04:00\""
+                            },
+                            "start": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The beginning of the time range to check for available appointment slots.\nExample: \"2025-11-07T10:00:00-04:00\""
+                            }
+                          }
+                        },
+                        "description": "Returns all available one-hour appointment slots within the given date range.\n\nOutput Example:\n```json\n{\n  \"slots\": [\n    { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n    { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n  ],\n  \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n}\n```"
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                      "server": {
+                        "url": "https://n8n.cyanstack.com/webhook/d406b00e-c0a2-4e92-b01b-9095124b1821",
+                        "headers": {
+                          "X-Chat-Id": "2bc06712-61c5-4ba0-b6ef-6cebe534f1f7"
+                        }
+                      },
+                      "async": true
+                    }
+                  ]
+                },
+                "firstMessage": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?",
+                "voicemailMessage": "Please call back when you're available.",
+                "endCallMessage": "Goodbye.",
+                "transcriber": {
+                  "model": "nova-2",
+                  "language": "en",
+                  "provider": "deepgram"
+                }
+              }
+            }
+          },
+          "webhookUrl": "https://n8n.cyanstack.com/webhook/d406b00e-c0a2-4e92-b01b-9095124b1821",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "VAPI Webhook Tool – POST Appointment": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.cyanstack.com",
+            "x-real-ip": "167.150.225.178",
+            "x-forwarded-for": "167.150.225.178",
+            "x-forwarded-proto": "https",
+            "x-forwarded-host": "n8n.cyanstack.com",
+            "connection": "close",
+            "content-length": "15631",
+            "accept": "application/json, text/plain, */*",
+            "content-type": "application/json",
+            "x-vapi-secret": "",
+            "x-chat-id": "f94873c1-6b0d-4eb7-8ebe-404fe38f33a8",
+            "cookie": "callId=",
+            "accept-encoding": "identity",
+            "user-agent": "axios/1.8.3",
+            "sentry-trace": "5293922620ee4e6ab51cda88d856059b-93d5d7902cae06b4",
+            "baggage": "sentry-environment=production,sentry-public_key=fac6f282c765ce50b18c3fa0305f8a8b,sentry-trace_id=5293922620ee4e6ab51cda88d856059b",
+            "traceparent": "00-15171ab375633d9432f9ee94b5a6ac01-f445cb1c7b11c477-01"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "message": {
+              "timestamp": 1762117824919,
+              "type": "tool-calls",
+              "toolCalls": [
+                {
+                  "id": "call_4xpKQjepiP54KfRxteB49IMq",
+                  "type": "function",
+                  "function": {
+                    "name": "post_appointment",
+                    "arguments": {
+                      "name": "Kyle Friel",
+                      "appointmentTime": "2025-11-04T13:00:00-05:00"
+                    }
+                  }
+                }
+              ],
+              "toolCallList": [
+                {
+                  "id": "call_4xpKQjepiP54KfRxteB49IMq",
+                  "type": "function",
+                  "function": {
+                    "name": "post_appointment",
+                    "arguments": {
+                      "name": "Kyle Friel",
+                      "appointmentTime": "2025-11-04T13:00:00-05:00"
+                    }
+                  }
+                }
+              ],
+              "toolWithToolCallList": [
+                {
+                  "type": "function",
+                  "function": {
+                    "name": "post_appointment",
+                    "parameters": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "appointmentTime"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "default": "",
+                          "description": "The customer’s full name to include in the calendar event title. Example: \"Jamie Lee\""
+                        },
+                        "appointmentTime": {
+                          "type": "string",
+                          "default": "",
+                          "description": "The scheduled appointment time. If the appointment is for October 31st at 10am, heres the input: `2025-10-31T10:00:00-04:00`.  Make sure the timezone offset is correct.  If the appointment is for November 3rd at 9am, heres the input `2025-11-03T09:00:00-05:00`"
+                        }
+                      }
+                    },
+                    "description": "Creates a confirmed appointment on the StyleHouse Google Calendar."
+                  },
+                  "server": {
+                    "url": "https://n8n.cyanstack.com/webhook/d38f289a-4ebb-4005-bfcc-76c3ccfc5657",
+                    "headers": {
+                      "X-Chat-Id": "f94873c1-6b0d-4eb7-8ebe-404fe38f33a8"
+                    }
+                  },
+                  "messages": [
+                    {
+                      "type": "request-start",
+                      "contents": [],
+                      "conditions": [],
+                      "blocking": false
+                    }
+                  ],
+                  "toolCall": {
+                    "id": "call_4xpKQjepiP54KfRxteB49IMq",
+                    "type": "function",
+                    "function": {
+                      "name": "post_appointment",
+                      "arguments": {
+                        "name": "Kyle Friel",
+                        "appointmentTime": "2025-11-04T13:00:00-05:00"
+                      }
+                    }
+                  }
+                }
+              ],
+              "artifact": {
+                "messages": [
+                  {
+                    "role": "system",
+                    "message": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, ...",
+                    "time": 1762117821791,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?",
+                    "time": 1762117821791,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "role": "user",
+                    "message": "whats the availability for tuesday",
+                    "time": 1762117821792,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "role": "tool_calls",
+                    "toolCalls": [
+                      {
+                        "id": "call_BA8Qx6A4LzLjJV6Mmgy65f6F",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-04T09:00:00-05:00\",\n  \"end\": \"2025-11-04T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ],
+                    "message": "",
+                    "time": 1762117821793,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "tool_call_result",
+                    "toolCallId": "call_BA8Qx6A4LzLjJV6Mmgy65f6F",
+                    "name": "call_BA8Qx6A4LzLjJV6Mmgy65f6F",
+                    "result": "",
+                    "time": 1762117821794,
+                    "secondsFromStart": 0
+                  },
+                  {
+                    "role": "bot",
+                    "message": "We have Tuesday 10:00 AM, Tuesday 11:00 AM, Tuesday 1:00 PM, Tuesday 2:00 PM, Tuesday 3:00 PM, Tuesday 4:00 PM and Tuesday 5:00 PM — what works better for you?",
+                    "time": 1762117821795,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "role": "user",
+                    "message": "i want to schedule for 1pm",
+                    "time": 1762117821796,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "role": "bot",
+                    "message": "Perfect! Could I get your full name to book your Tuesday at 1 PM appointment?",
+                    "time": 1762117821797,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "role": "user",
+                    "message": "Kyle Friel",
+                    "time": 1762117821798,
+                    "secondsFromStart": 0,
+                    "endTime": 1762117821791
+                  },
+                  {
+                    "toolCalls": [
+                      {
+                        "id": "call_4xpKQjepiP54KfRxteB49IMq",
+                        "type": "function",
+                        "function": {
+                          "name": "post_appointment",
+                          "arguments": "{\n  \"name\": \"Kyle Friel\",\n  \"appointmentTime\": \"2025-11-04T13:00:00-05:00\"\n}"
+                        }
+                      }
+                    ],
+                    "role": "tool_calls",
+                    "message": "",
+                    "time": 1762117824900,
+                    "secondsFromStart": 3.109
+                  }
+                ],
+                "messagesOpenAIFormatted": [
+                  {
+                    "role": "system",
+                    "content": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, ..."
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "whats the availability for tuesday"
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_BA8Qx6A4LzLjJV6Mmgy65f6F",
+                        "type": "function",
+                        "function": {
+                          "name": "check_availability",
+                          "arguments": "{\n  \"start\": \"2025-11-04T09:00:00-05:00\",\n  \"end\": \"2025-11-04T18:00:00-05:00\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_BA8Qx6A4LzLjJV6Mmgy65f6F",
+                    "content": ""
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "We have Tuesday 10:00 AM, Tuesday 11:00 AM, Tuesday 1:00 PM, Tuesday 2:00 PM, Tuesday 3:00 PM, Tuesday 4:00 PM and Tuesday 5:00 PM — what works better for you?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "i want to schedule for 1pm"
+                  },
+                  {
+                    "role": "assistant",
+                    "content": "Perfect! Could I get your full name to book your Tuesday at 1 PM appointment?"
+                  },
+                  {
+                    "role": "user",
+                    "content": "Kyle Friel"
+                  },
+                  {
+                    "role": "assistant",
+                    "tool_calls": [
+                      {
+                        "id": "call_4xpKQjepiP54KfRxteB49IMq",
+                        "type": "function",
+                        "function": {
+                          "name": "post_appointment",
+                          "arguments": "{\n  \"name\": \"Kyle Friel\",\n  \"appointmentTime\": \"2025-11-04T13:00:00-05:00\"\n}"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "role": "tool",
+                    "tool_call_id": "call_4xpKQjepiP54KfRxteB49IMq",
+                    "content": "Tool Result Still Pending But Proceed Further If Possible."
+                  }
+                ]
+              },
+              "chat": {
+                "id": "f94873c1-6b0d-4eb7-8ebe-404fe38f33a8",
+                "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                "createdAt": "2025-10-30T17:01:01.008Z",
+                "updatedAt": "2025-11-02T21:09:45.761Z"
+              },
+              "assistant": {
+                "id": "2a4ad372-8453-487e-91cc-a879ef986657",
+                "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                "name": "Robert",
+                "voice": {
+                  "model": "eleven_turbo_v2_5",
+                  "voiceId": "bIHbv24MWmeRgasZH58o",
+                  "provider": "11labs",
+                  "stability": 0.5,
+                  "similarityBoost": 0.75
+                },
+                "createdAt": "2025-11-02T15:14:43.515Z",
+                "updatedAt": "2025-11-02T19:06:59.700Z",
+                "model": {
+                  "model": "gpt-4.1",
+                  "toolIds": [
+                    "f605f425-e6b0-4e7b-b581-0c2af22ccf7b",
+                    "bb44dcd9-8823-4edf-ba7b-2369a97f3cb6"
+                  ],
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "# Appointment Scheduling Agent Prompt (Natural Slot Selection)\n\n## Identity & Purpose\nYou are **Emma**, a friendly and efficient voice scheduling assistant for **StyleHouse Salon**, a modern salon specializing in haircuts and styling.  \nYour goal is to help customers book haircut appointments quickly and accurately by checking the salon’s live availability and creating confirmed bookings on the salon’s Google Calendar.  \nYou must **only use real data** from the tools and **never make up times**.\n\n---\n\n## Voice & Persona\n\n### Personality\n- Warm, upbeat, and professional — like a helpful front-desk stylist.  \n- Sound confident and friendly, with natural small talk when needed.  \n- Keep it light and conversational (“Sure thing!”, “Let me check for you!”).  \n\n### Speech\n- Use short, natural sentences.  \n- When reading available times, sound human:  \n  > “We have Sunday at 2 PM and Sunday at 3 PM — which works better for you?”  \n- Don’t say “Option 1” or “Option 2.”  \n- Never mention JSON, IDs, or technical details.\n\n---\n\n## Context\nToday's date: **Nov 2, 2025, 9:10 PM UTC**  \nCurrent local time: **04:10 PM**  \nAll times are in **America/New_York**.\n\n---\n\n## Business Hours\nStyleHouse Salon operates during:\n- Monday–Friday: 9:00 AM – 6:00 PM  \n- Saturday: 9:00 AM – 3:00 PM  \n- Sunday: Closed  \n\nAppointments can only be booked during open hours.  \nIf the customer asks for a time outside these hours, say:  \n> “We’re closed then, but I can check for a morning or afternoon slot between 9 and 6 — what works best?”\n\n---\n\n## Conversation Flow\n\n### Step 1 — Greeting\nStart with:  \n> “Thank you for calling StyleHouse Salon, this is Emma! How can I help you today?”\n\nIf they say they’d like to book:  \n> “Of course! What day or time works best for you?”\n\n---\n\n### Step 2 — Determine the Time Range\nWhen the caller mentions a date or general timeframe, determine the range:\n\n| Caller says... | `start` param | `end` param |\n|-----------------|---------------|-------------|\n| “today” | Start of today | End of today |\n| “tomorrow” | Start of tomorrow | End of tomorrow |\n| “this week” | Start of week | End of week |\n\nThen call **`check_availability`**.\n\n---\n\n### Step 3 — Offer Available Slots\nThe `check_availability` tool returns results like this:\n\n```json\n{\n  \"slots\": [\n    { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n    { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n  ],\n  \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n}\n```\n\nWhen offering times:\n- Read `spokenSummary` exactly as returned.  \n- If the caller mentions one of the `spoken` times, map it to that slot’s `id`.  \n- If they ask for a time not listed, respond:  \n  > “That time’s booked, but we have Sunday at 2 PM or Sunday at 3 PM available.”  \n- If no slots are available, say:  \n  > “It looks like we’re fully booked that day — would you like to try another day?”\n\n---\n\n### Step 4 — Confirm & Book\nOnce they choose a time:\n1. Ask for their **full name** (and optionally email).  \n2. Call **`postAppointment`** with:\n   ```json\n   {\n     \"name\": \"Jamie Lee\",\n     \"appointmentTime\": \"2025-11-02T14:00:00-05:00\"\n   }\n   ```\nThe appointment time should be the slot id from the slot chosen by user.\n3. Confirm:\n   > “Perfect, Jamie — you’re all set for Sunday at 2 PM. We’ll see you then!”\n\nIf the slot is no longer available:\n> “Looks like that spot was just taken — want me to check what else is open?”\n\n---\n\n## Tool Definitions\n\n### `check_availability`\n- **Purpose:** Returns all available 1-hour appointment slots within a given date range.  \n- **Input:**  \n  - `start` *(required)* — Start of range (ISO 8601 with timezone offset).  \n  - `end` *(required)* — End of range (ISO 8601 with timezone offset).  \n- **Output Example:**  \n  ```json\n  {\n    \"slots\": [\n      { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n      { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n    ],\n    \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n  }\n  ```\n\n---\n\n### `postAppointment`\n- **Purpose:** Creates a new appointment in the salon’s Google Calendar for the selected slot.  \n- **Input:**  \n  - `name` *(required)* — Customer’s name.  \n  - `slotId` *(required)* — Slot’s unique ID from `check_availability`.  \n- **Output Example:**  \n  ```json\n  {\n    \"eventCreated\": true,\n    \"calendarEventId\": \"abcd123\",\n    \"message\": \"Appointment created for Jamie Lee on 2025-11-02T14:00:00-05:00\"\n  }\n  ```\n\n---\n\n## Grounding Rules\n1. **Never** invent or modify appointment times.  \n2. Offer **only** slots returned by `check_availability`.  \n3. Use the exact `spoken` field when confirming or repeating times.  \n4. Do not mention or expose technical data (IDs, JSON, timestamps).  \n5. Always restate the chosen time before confirming.  \n6. If no times are available, offer to check another day.  \n\n---\n\n**Remember:**  \nYou exist to make scheduling effortless and accurate.  \nBe warm, brief, and confident — and always rely on real data.\n"
+                    }
+                  ],
+                  "provider": "openai",
+                  "tools": [
+                    {
+                      "id": "f605f425-e6b0-4e7b-b581-0c2af22ccf7b",
+                      "createdAt": "2025-11-02T18:53:51.146Z",
+                      "updatedAt": "2025-11-02T21:06:49.129Z",
+                      "type": "function",
+                      "function": {
+                        "name": "post_appointment",
+                        "parameters": {
+                          "type": "object",
+                          "required": [
+                            "name",
+                            "appointmentTime"
+                          ],
+                          "properties": {
+                            "name": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The customer’s full name to include in the calendar event title. Example: \"Jamie Lee\""
+                            },
+                            "appointmentTime": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The scheduled appointment time. If the appointment is for October 31st at 10am, heres the input: `2025-10-31T10:00:00-04:00`.  Make sure the timezone offset is correct.  If the appointment is for November 3rd at 9am, heres the input `2025-11-03T09:00:00-05:00`"
+                            }
+                          }
+                        },
+                        "description": "Creates a confirmed appointment on the StyleHouse Google Calendar."
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "blocking": false
+                        }
+                      ],
+                      "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                      "server": {
+                        "url": "https://n8n.cyanstack.com/webhook/d38f289a-4ebb-4005-bfcc-76c3ccfc5657",
+                        "headers": {
+                          "X-Chat-Id": "f94873c1-6b0d-4eb7-8ebe-404fe38f33a8"
+                        }
+                      }
+                    },
+                    {
+                      "id": "bb44dcd9-8823-4edf-ba7b-2369a97f3cb6",
+                      "createdAt": "2025-11-02T18:47:05.483Z",
+                      "updatedAt": "2025-11-02T20:42:59.808Z",
+                      "type": "function",
+                      "function": {
+                        "name": "check_availability",
+                        "parameters": {
+                          "type": "object",
+                          "required": [
+                            "start",
+                            "end"
+                          ],
+                          "properties": {
+                            "end": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The end of the time range to check for available appointment slots.\nExample: \"2025-11-08T10:00:00-04:00\""
+                            },
+                            "start": {
+                              "type": "string",
+                              "default": "",
+                              "description": "The beginning of the time range to check for available appointment slots.\nExample: \"2025-11-07T10:00:00-04:00\""
+                            }
+                          }
+                        },
+                        "description": "Returns all available one-hour appointment slots within the given date range.\n\nOutput Example:\n```json\n{\n  \"slots\": [\n    { \"id\": \"2025-11-02T14:00:00-05:00\", \"spoken\": \"Sunday at 2 PM\" },\n    { \"id\": \"2025-11-02T15:00:00-05:00\", \"spoken\": \"Sunday at 3 PM\" }\n  ],\n  \"spokenSummary\": \"We have Sunday at 2 PM and Sunday at 3 PM — what works better for you?\"\n}\n```"
+                      },
+                      "messages": [
+                        {
+                          "type": "request-start",
+                          "content": "",
+                          "blocking": false
+                        }
+                      ],
+                      "orgId": "c4350ec5-80ce-40af-ae90-a66ff2dce3ad",
+                      "server": {
+                        "url": "https://n8n.cyanstack.com/webhook/d406b00e-c0a2-4e92-b01b-9095124b1821",
+                        "headers": {
+                          "X-Chat-Id": "f94873c1-6b0d-4eb7-8ebe-404fe38f33a8"
+                        }
+                      },
+                      "async": false
+                    }
+                  ]
+                },
+                "firstMessage": "Thank you for calling StyleHouse Salon. This is Robert, your scheduling assistant. How may I help you today?",
+                "voicemailMessage": "Please call back when you're available.",
+                "endCallMessage": "Goodbye.",
+                "transcriber": {
+                  "model": "nova-2",
+                  "language": "en",
+                  "provider": "deepgram"
+                }
+              }
+            }
+          },
+          "webhookUrl": "https://n8n.cyanstack.com/webhook/d38f289a-4ebb-4005-bfcc-76c3ccfc5657",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Get many events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAPI Webhook Tool - GET Availability": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VAPI Webhook Tool – POST Appointment": {
+      "main": [
+        [
+          {
+            "node": "Create an event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "54b177f0-38f9-4b98-9a3a-a9c8af3cb714",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f8f24ba926ad175fb3fa0b581d1ea7e580749c1a4da438e4b4b0f683c1dc9a3"
+  },
+  "id": "oMZ1PxRnVPg3DYiC",
+  "tags": []
+}
