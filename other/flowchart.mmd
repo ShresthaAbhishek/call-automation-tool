@@ -1,0 +1,74 @@
+flowchart TD
+    %% Styling
+    classDef start fill:#90EE90,stroke:#333,stroke-width:2px,color:black;
+    classDef process fill:#FCE883,stroke:#333,stroke-width:2px,color:black;
+    classDef decision fill:#89CFF0,stroke:#333,stroke-width:2px,color:black;
+    classDef endNode fill:#FFB6C1,stroke:#333,stroke-width:2px,color:black;
+    classDef human fill:#FFDAB9,stroke:#333,stroke-width:2px,color:black;
+
+    %% Entry Point
+    Start([Inbound Call]) --> Greeting[Standard Welcome Message]
+    class Start start
+    class Greeting process
+
+    Greeting --> Intent{Gather Intent}
+    class Intent decision
+
+    %% Branch 1: Reservations
+    Intent -- "Make Reservation" --> ResDetails[Ask Party Size & Time]
+    class ResDetails process
+    
+    ResDetails --> CheckAvail{Check Availability}
+    class CheckAvail decision
+    
+    CheckAvail -- "Available" --> GetInfo[Collect Name & Phone]
+    CheckAvail -- "Full" --> SuggestTime[Suggest Alternate Time]
+    
+    SuggestTime --> CheckAvail
+    GetInfo --> Book[Confirm Booking]
+    
+    class GetInfo,Book,SuggestTime process
+
+    %% Branch 2: Placing an Order
+    Intent -- "Place Order" --> OrderType{Pickup or Delivery?}
+    class OrderType decision
+    
+    OrderType --> TakeOrder[Take Order / Consult Menu]
+    TakeOrder --> Upsell{Suggest Sides/Drinks?}
+    class Upsell decision
+    
+    Upsell -- "Add Item" --> TakeOrder
+    Upsell -- "No Thanks" --> ConfirmOrder[Confirm Total & Time]
+    
+    ConfirmOrder --> Payment[Process Payment Info]
+    Payment --> SendKitchen[Send to Kitchen System]
+    
+    class TakeOrder,ConfirmOrder,Payment,SendKitchen process
+
+    %% Branch 3: General Inquiries
+    Intent -- "General Inquiry" --> ListenQ[Listen to Question]
+    ListenQ --> KB{Knowledge Base Search}
+    class KB decision
+    
+    KB -- "Found Answer" --> SpeakAns[Speak Answer]
+    KB -- "Unknown" --> Transfer
+    
+    SpeakAns --> FollowUp{Anything else?}
+    FollowUp -- "Yes" --> Intent
+    
+    class ListenQ,SpeakAns process
+    class FollowUp decision
+
+    %% Branch 4: Human Escalation
+    Intent -- "Speak to Staff" --> Transfer[Transfer to Front of House]
+    class Transfer human
+
+    %% Closing Loop (Logging data effectively creates the user record for next time)
+    Book --> Log[Log to POS/Reservation Sys]
+    SendKitchen --> Log
+    FollowUp -- "No" --> Log
+    Transfer --> Log
+
+    Log --> End([End Call])
+    class Log process
+    class End endNode
