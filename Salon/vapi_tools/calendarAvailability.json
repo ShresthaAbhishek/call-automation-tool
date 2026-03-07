@@ -1,0 +1,14 @@
+/*Checks general calendar availability for the barbershop around a requested date and time.*/
+
+{
+    "type": "object",
+    "properties": {
+      "initialSearchDateTime": {
+        "description": "The date and time the user is asking about, in ISO 8601 format (e.g., 2026-03-03T15:00:00-06:00).",
+        "type": "string"
+      }
+    },
+    "required": [
+      "initialSearchDateTime"
+    ]
+  }

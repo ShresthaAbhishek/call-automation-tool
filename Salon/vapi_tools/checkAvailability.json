@@ -1,0 +1,23 @@
+/*Checks if a specific time slot is available for a requested service, ensuring the 2-appointment cap is not exceeded and the preferred barber (if any) is free.*/
+
+{
+    "type": "object",
+    "properties": {
+      "serviceType": {
+        "description": "The service requested (e.g., Haircut, Beard Trim, Hot Towel Shave, Line Up).",
+        "type": "string"
+      },
+      "preferredBarberName": {
+        "description": "The name of the requested barber. Leave blank or null if the caller has no preference.",
+        "type": "string"
+      },
+      "initialSearchDateTime": {
+        "description": "The preferred date and time for the appointment, in ISO 8601 format.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "initialSearchDateTime",
+      "serviceType"
+    ]
+  }

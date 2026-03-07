@@ -1,0 +1,24 @@
+//Cancels an existing appointment in the system.
+
+{
+    "type": "object",
+    "properties": {
+      "name": {
+        "description": "The first name of the customer canceling.",
+        "type": "string"
+      },
+      "phone": {
+        "description": "The phone number associated with the booking.",
+        "type": "string"
+      },
+      "scheduledDateTime": {
+        "description": "The date and time of the appointment they wish to cancel, in ISO 8601 format.",
+        "type": "string"
+      }
+    },
+    "required": [
+      "name",
+      "phone",
+      "scheduledDateTime"
+    ]
+  }
